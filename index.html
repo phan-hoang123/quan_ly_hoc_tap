@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản lý thời gian cá nhân</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+        <div class="logo"> Quản Lý Học Tập</div>
+        <div class="nav-item active" onclick="switchTab('dashboard', this)"><i class="fa-solid fa-chart-pie"></i> Tổng
+            quan</div>
+        <div class="nav-item" onclick="switchTab('schedule', this)"><i class="fa-solid fa-calendar-days"></i> Lịch học
+        </div>
+        <div class="nav-item" onclick="switchTab('routine', this)"><i class="fa-solid fa-clock"></i> Thời gian biểu
+        </div>
+        <div class="nav-item" onclick="switchTab('tasks', this)"><i class="fa-solid fa-list-check"></i> Quản lý Task
+        </div>
+        <div class="nav-item" onclick="switchTab('music', this)"><i class="fa-solid fa-headphones"></i> Thư viện Nhạc
+        </div>
+        <div class="nav-item" onclick="switchTab('backup', this)"><i class="fa-solid fa-database"></i> Sao lưu Dữ liệu
+        </div>
+
+        <div class="sidebar-bottom">
+            <div class="theme-toggle" onclick="toggleTheme()">
+                <i class="fa-solid fa-moon" id="themeIcon"></i>
+                <span id="themeText">Chế độ tối</span>
+            </div>
+        </div>
+    </aside>
+
+    <!-- WIDGET NHẠC THU NHỎ -->
+    <div class="floating-widget" id="musicWidget"
+        style="position: fixed; bottom: 20px; left: 20px; width: 280px; background: var(--surface); padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); z-index: 1000;">
+        <button class="btn-minimize" onclick="toggleWidget()"><i class="fa-solid fa-minus"></i></button>
+        <div style="text-align: center; margin-bottom: 15px;">
+            <i class="fa-solid fa-music" style="color: var(--primary);"></i> <span
+                style="font-weight: bold; color: var(--primary);">Máy nghe nhạc</span><br>
+            <button class="btn-action" style="margin-top: 10px; font-size: 12px;"
+                onclick="document.getElementById('musicInput').click()">
+                <i class="fa-solid fa-folder-open"></i> Thêm nhạc
+            </button>
+            <input type="file" id="musicInput" accept="audio/*" multiple style="display: none;">
+        </div>
+        <div id="trackName"
+            style="text-align: center; font-weight: 500; font-size: 14px; margin-bottom: 10px; color: var(--primary);">
+            Hãy chọn nhạc để phát</div>
+        <div class="music-controls" style="display: flex; justify-content: center; gap: 10px;">
+            <button class="btn-action" id="btnShuffle" onclick="toggleShuffle()"><i
+                    class="fa-solid fa-shuffle"></i></button>
+            <button class="btn-action" onclick="prevTrack()"><i class="fa-solid fa-backward-step"></i></button>
+            <button class="btn-action" id="btnPlay" onclick="togglePlay()"
+                style="background: var(--primary); color: white;"><i class="fa-solid fa-play"></i></button>
+            <button class="btn-action" onclick="nextTrack()"><i class="fa-solid fa-forward-step"></i></button>
+        </div>
+        <div class="playlist" id="playlistUI" style="margin-top: 15px;"></div>
+        <audio id="myAudio" style="display: none;"></audio>
+    </div>
+
+    <!-- POMODORO TIMER -->
+    <div class="pomodoro-box" id="pomoBox"
+        style="position: fixed; bottom: 20px; left: 280px; z-index: 999; background: var(--surface); padding: 15px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 220px; transition: background 0.3s ease;">
+
+        <!-- Thanh Header dùng để nắm kéo thả -->
+        <div id="pomoHeader"
+            style="cursor: grab; display: flex; justify-content: space-between; align-items: center; padding-bottom: 10px; margin-bottom: 10px; border-bottom: 1px solid var(--border);">
+            <div style="font-size: 13px; color: var(--gray); font-weight: bold; pointer-events: none;">
+                <i class="fa-solid fa-stopwatch"></i> Tập trung
+            </div>
+            <button onclick="togglePomoWidget()"
+                style="background: none; border: none; color: var(--gray); cursor: pointer; font-size: 14px;"><i
+                    class="fa-solid fa-minus"></i></button>
+        </div>
+
+        <!-- Nội dung đồng hồ -->
+        <div class="pomo-content">
+            <div class="pomo-time" id="pomoDisplay"
+                style="text-align: center; font-size: 32px; font-weight: bold; color: var(--primary); margin-bottom: 15px;">
+                45:00</div>
+            <div class="pomo-controls" style="display: flex; justify-content: center; gap: 10px;">
+                <button class="btn-action" onclick="startPomo()"><i class="fa-solid fa-play"></i></button>
+                <button class="btn-action" onclick="pausePomo()"><i class="fa-solid fa-pause"></i></button>
+                <button class="btn-action" onclick="resetPomo()"><i class="fa-solid fa-rotate-right"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <main class="main-content">
+        <div class="header-top">
+            <h2 id="pageTitle">Báo cáo hiệu suất hôm nay</h2>
+            <button class="btn-action" onclick="requestNotiPermission()"><i class="fa-regular fa-bell"></i> Thông báo </button>
+        </div>
+
+        <!-- TAB 1: DASHBOARD -->
+        <section id="dashboard" class="page active">
+            <div class="stats-grid">
+                <div class="card stat-card">
+                    <div style="color: var(--gray); font-size: 14px;">Tổng số Task</div>
+                    <div class="stat-value" id="totalTasksCount">0</div>
+                </div>
+                <div class="card stat-card">
+                    <div style="color: var(--gray); font-size: 14px;">Đã hoàn thành</div>
+                    <div class="stat-value" id="completedTasksCount">0</div>
+                </div>
+                <div class="card stat-card">
+                    <div style="color: var(--gray); font-size: 14px;">Tiến độ (%)</div>
+                    <div class="stat-value" id="productivityScore">0%</div>
+                    <div class="progress-container">
+                        <div class="progress-bar" id="progressBar"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="card">
+                <h3 id="todayScheduleTitle">Lịch học hôm nay</h3>
+                <table id="todayScheduleTable">
+                    <thead>
+                        <tr>
+                            <th>Tiết</th>
+                            <th>Thời gian</th>
+                            <th>Môn học</th>
+                            <th>Phòng</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Quản lý lịch học -->
+        <section id="schedule" class="page">
+            <div class="card">
+                <!-- Cài đặt mốc thời gian để tính tuần -->
+                <div class="header-top" style="margin-bottom: 15px;">
+                    <h3 style="margin: 0; color: var(--text);">Nhập thông tin lịch học</h3>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <button class="btn-action"
+                            style="background: var(--warning); padding: 6px 12px; font-size: 13px;"
+                            onclick="openPeriodModal()"><i class="fa-regular fa-clock"></i> Xem giờ tiết học</button>
+                        <label style="font-size: 13px; color: var(--gray);">Ngày bắt đầu kỳ học :</label>
+                        <input type="date" id="semesterStartDate" onchange="autoCalculateWeek()"
+                            style="padding: 6px 10px; font-size: 13px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--text);">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <input type="number" id="weekInput" placeholder="Tuần số (VD: 1)" min="1" max="25" style="flex: 1;">
+                    <select id="daySelect" style="flex: 1.5;">
+                        <option value="Thứ 2">Thứ 2</option>
+                        <option value="Thứ 3">Thứ 3</option>
+                        <option value="Thứ 4">Thứ 4</option>
+                        <option value="Thứ 5">Thứ 5</option>
+                        <option value="Thứ 6">Thứ 6</option>
+                        <option value="Thứ 7">Thứ 7</option>
+                        <option value="Chủ nhật">Chủ nhật</option>
+                    </select>
+                    <input type="number" id="startPeriod" min="1" max="16" placeholder="Từ tiết" style="flex: 1;">
+                    <input type="number" id="endPeriod" min="1" max="16" placeholder="Đến tiết" style="flex: 1;">
+                </div>
+                <div class="form-group">
+                    <input type="text" id="subjectInput" placeholder="Tên môn học" style="flex: 2;">
+                    <input type="text" id="roomInput" placeholder="Phòng" style="flex: 1;">
+                    <input type="text" id="noteInput" placeholder="Ghi chú (Lý thuyết / Thực hành...)" style="flex: 2;">
+                    <button class="btn-action" id="btnSaveSchedule" onclick="saveSchedule()">Thêm Lịch</button>
+                    <button class="btn-action" id="btnCancelEdit" onclick="cancelEdit()"
+                        style="display: none; background: var(--gray);">Hủy</button>
+                </div>
+
+                <div class="header-top" style="margin-top: 30px; margin-bottom: 10px;">
+                    <h3 style="margin: 0; color: var(--text);">Danh sách lịch học</h3>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <label style="font-size: 13px; color: var(--gray);">Lọc hiển thị:</label>
+                        <input type="number" id="weekFilter" oninput="renderSchedule()" placeholder="Nhập số tuần..."
+                            style="width: 130px; padding: 6px 10px; font-size: 13px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--text);">
+                    </div>
+                </div>
+
+                <!-- Thời khóa biểu -->
+                <div id="scheduleGridContainer"></div>
+            </div>
+        </section>
+
+        <!-- Task & Dealine -->
+        <section id="tasks" class="page">
+            <div class="card">
+                <div class="form-group">
+                    <input type="text" id="taskNameInput" placeholder="Tên bài tập / công việc..." style="flex: 3;">
+                    <input type="date" id="taskDeadlineInput" style="flex: 1;" title="Ngày hết hạn">
+                    <button class="btn-action" onclick="addTask()">Thêm Task</button>
+                </div>
+                <div id="taskListContainer"></div>
+            </div>
+        </section>
+
+        <!-- Backup -->
+        <section id="backup" class="page">
+            <div class="card" style="text-align: center; padding: 40px;">
+                <i class="fa-solid fa-cloud-arrow-down"
+                    style="font-size: 50px; color: var(--primary); margin-bottom: 20px;"></i>
+                <h3>Quản lý Dữ liệu Cá nhân</h3>
+                <p style="color: var(--gray); margin: 15px 0;">Dữ liệu hiện tại được lưu tạm trên trình duyệt này. Hãy
+                    xuất ra file để sao lưu hoặc chuyển sang máy khác.</p>
+                <div style="display: flex; gap: 15px; justify-content: center; margin-top: 20px;">
+                    <button class="btn-action" onclick="exportData()"><i class="fa-solid fa-download"></i> Tải file
+                        Backup (.json)</button>
+                    <label class="btn-action" style="background: var(--success); cursor: pointer;">
+                        <i class="fa-solid fa-upload"></i> Nhập dữ liệu
+                        <input type="file" id="importFile" accept=".json" style="display: none;"
+                            onchange="importData(event)">
+                    </label>
+                </div>
+            </div>
+        </section>
+
+        <!-- Thư viện âm nhạc -->
+        <section id="music" class="page">
+            <div class="header-top">
+                <h2><i class="fa-solid fa-music"></i> Thư viện Âm nhạc </h2>
+                <button class="btn-action" onclick="document.getElementById('mainMusicInput').click()"><i
+                        class="fa-solid fa-file-import"></i> Download nhạc </button>
+                <input type="file" id="mainMusicInput" accept="audio/*" multiple style="display: none;">
+            </div>
+
+            <div class="music-layout">
+                <!-- Bảng danh sách -->
+                <div class="music-list-section">
+
+                    <!-- Thanh lọc và Tìm kiếm -->
+                    <div id="stickySearch"
+                        style="display: flex; gap: 12px; margin-bottom: 20px; align-items: center; flex-wrap: wrap;">
+                        <!-- Thanh lọc ca sĩ -->
+                        <div id="artistFilterBar" style="margin-bottom: 0;"></div>
+
+                        <!-- Thanh Tìm Kiếm Nhạc -->
+                        <div style="flex: 1; position: relative; min-width: 250px;">
+                            <i class="fa-solid fa-magnifying-glass"
+                                style="position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: var(--gray);"></i>
+                            <input type="text" id="musicSearchInput" placeholder="Tìm tên bài hát hoặc ca sĩ..."
+                                oninput="searchMusic()"
+                                style="width: 100%; padding: 10px 15px 10px 40px; border-radius: 8px; border: 1px solid var(--border); background: var(--white); color: var(--text); outline: none; font-size: 13px; box-sizing: border-box; transition: 0.2s;">
+                        </div>
+                    </div>
+
+                    <!-- Danh sách nhạc -->
+                    <div id="mainMusicList" class="modern-song-list"></div>
+                </div>
+
+                <!-- Giao diện đĩa than -->
+                <div class="music-player-section premium-player">
+                    <div class="player-header-text">
+                        <i class="fa-solid fa-headphones-simple"></i> Đang phát
+                    </div>
+
+                    <div class="cd-disk" id="cdDisk">
+                        <div class="cd-center"></div>
+                    </div>
+
+                    <div class="player-info">
+                        <h3 id="cdTrackName" class="premium-title">Chưa có bài hát</h3>
+                        <p id="cdArtistName" class="premium-artist">...</p>
+                    </div>
+
+                    <!-- Thanh tiến trình -->
+                    <div class="progress-area">
+                        <div class="time-texts">
+                            <span id="currentTime">00:00</span>
+                            <span id="totalTime">00:00</span>
+                        </div>
+                        <input type="range" id="progressSlider" min="0" max="100" value="0">
+                    </div>
+
+                    <!-- Cụm nút điều khiển -->
+                    <div class="premium-controls">
+                        <button class="ctrl-btn" id="cdBtnShuffle" onclick="toggleShuffle()"><i
+                                class="fa-solid fa-shuffle"></i></button>
+                        <button class="ctrl-btn main-ctrl" onclick="prevTrack()"><i
+                                class="fa-solid fa-backward-step"></i></button>
+                        <button class="ctrl-btn play-ctrl" id="cdBtnPlay" onclick="togglePlay()"><i
+                                class="fa-solid fa-play"></i></button>
+                        <button class="ctrl-btn main-ctrl" onclick="nextTrack()"><i
+                                class="fa-solid fa-forward-step"></i></button>
+                        <button class="ctrl-btn" onclick="toggleMute()"><i class="fa-solid fa-volume-high"
+                                id="volumeIcon"></i></button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Thời gian biểu cá nhân -->
+        <section id="routine" class="page">
+            <div class="card">
+                <div class="form-group" style="align-items: flex-end;">
+                    <div style="flex: 1.5;">
+                        <label style="font-size: 12px; color: var(--gray);">Áp dụng cho</label>
+                        <select id="routineDay" style="width: 100%;">
+                            <option value="Mỗi ngày">Mỗi ngày</option>
+                            <option value="Thứ 2">Thứ 2</option>
+                            <option value="Thứ 3">Thứ 3</option>
+                            <option value="Thứ 4">Thứ 4</option>
+                            <option value="Thứ 5">Thứ 5</option>
+                            <option value="Thứ 6">Thứ 6</option>
+                            <option value="Thứ 7">Thứ 7</option>
+                            <option value="Chủ nhật">Chủ nhật</option>
+                        </select>
+                    </div>
+                    <div style="flex: 1;">
+                        <label style="font-size: 12px; color: var(--gray);">Từ giờ</label>
+                        <input type="time" id="routineStart" style="width: 100%;">
+                    </div>
+                    <div style="flex: 1;">
+                        <label style="font-size: 12px; color: var(--gray);">Đến giờ</label>
+                        <input type="time" id="routineEnd" style="width: 100%;">
+                    </div>
+                    <div style="flex: 3;">
+                        <label style="font-size: 12px; color: var(--gray);">Hoạt động</label>
+                        <input type="text" id="routineActivity" placeholder="VD: Code project React, Học tiếng Trung..."
+                            style="width: 100%;">
+                    </div>
+                    <div style="flex: 1.5;">
+                        <label style="font-size: 12px; color: var(--gray);">Phân loại</label>
+                        <select id="routineType" style="width: 100%;">
+                            <option value="Học tập">Học tập</option>
+                            <option value="Giải trí">Giải trí</option>
+                            <option value="Cá nhân">Cá nhân</option>
+                        </select>
+                    </div>
+                    <button class="btn-action" onclick="addRoutine()" style="height: 42px;">Thêm</button>
+                </div>
+
+                <div class="header-top"
+                    style="margin-top: 30px; margin-bottom: 20px; display: flex; flex-direction: column; align-items: flex-start; gap: 15px;">
+                    <h3 style="margin: 0; color: var(--text);">Danh sách lịch trình</h3>
+
+                    <!-- Dải nút bấm ngang -->
+                    <div class="day-tabs-container" id="routineTabs">
+                        <button class="day-tab-btn active" onclick="filterRoutineByDay('Tất cả', this)">Tất cả</button>
+                        <button class="day-tab-btn" onclick="filterRoutineByDay('Thứ 2', this)">Thứ 2</button>
+                        <button class="day-tab-btn" onclick="filterRoutineByDay('Thứ 3', this)">Thứ 3</button>
+                        <button class="day-tab-btn" onclick="filterRoutineByDay('Thứ 4', this)">Thứ 4</button>
+                        <button class="day-tab-btn" onclick="filterRoutineByDay('Thứ 5', this)">Thứ 5</button>
+                        <button class="day-tab-btn" onclick="filterRoutineByDay('Thứ 6', this)">Thứ 6</button>
+                        <button class="day-tab-btn" onclick="filterRoutineByDay('Thứ 7', this)">Thứ 7</button>
+                        <button class="day-tab-btn" onclick="filterRoutineByDay('Chủ nhật', this)">Chủ nhật</button>
+                    </div>
+                </div>
+
+                <!--Trục thời gian-->
+                <div id="routineList" class="routine-timeline"></div>
+            </div>
+        </section>
+
+    </main>
+
+    <!--Bảng thời gian tiết học-->
+    <div id="periodModal" class="modal-overlay">
+        <div class="modal-content custom-haui-modal">
+            <div class="modal-header">
+                <h3><img src="https://upload.wikimedia.org/wikipedia/commons/e/e8/Logo_Đại_học_Công_nghiệp_Hà_Nội.png"
+                        style="width:24px; height:24px; object-fit:contain; margin-right:5px;"> Quy định thời gian học -
+                    HaUI</h3>
+                <button class="btn-close" onclick="closePeriodModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="period-grid">
+                    <div class="period-col">
+                        <h4>BUỔI SÁNG</h4>
+                        <ul>
+                            <li><b>Tiết 1:</b> 07h00 - 07h50</li>
+                            <li><b>Tiết 2:</b> 07h50 - 08h40</li>
+                            <li class="break-time">Nghỉ 5 phút</li>
+                            <li><b>Tiết 3:</b> 08h45 - 09h35</li>
+                            <li class="break-time">Nghỉ 5 phút</li>
+                            <li><b>Tiết 4:</b> 09h40 - 10h30</li>
+                            <li class="break-time">Nghỉ 5 phút</li>
+                            <li><b>Tiết 5:</b> 10h35 - 11h25</li>
+                            <li><b>Tiết 6:</b> 11h25 - 12h15</li>
+                        </ul>
+                    </div>
+                    <div class="period-col">
+                        <h4>BUỔI CHIỀU</h4>
+                        <ul>
+                            <li><b>Tiết 7:</b> 12h30 - 13h20</li>
+                            <li><b>Tiết 8:</b> 13h20 - 14h10</li>
+                            <li class="break-time">Nghỉ 5 phút</li>
+                            <li><b>Tiết 9:</b> 14h15 - 15h05</li>
+                            <li class="break-time">Nghỉ 5 phút</li>
+                            <li><b>Tiết 10:</b> 15h10 - 16h00</li>
+                            <li class="break-time">Nghỉ 5 phút</li>
+                            <li><b>Tiết 11:</b> 16h05 - 16h55</li>
+                            <li><b>Tiết 12:</b> 16h55 - 17h45</li>
+                        </ul>
+                    </div>
+                    <div class="period-col">
+                        <h4>BUỔI TỐI</h4>
+                        <ul>
+                            <li><b>Tiết 13:</b> 18h00 - 18h50</li>
+                            <li><b>Tiết 14:</b> 18h50 - 19h40</li>
+                            <li class="break-time">Nghỉ 5 phút</li>
+                            <li><b>Tiết 15:</b> 19h45 - 20h35</li>
+                            <li><b>Tiết 16:</b> 20h35 - 21h25</li>
+                        </ul>
+                    </div>
+                    <div class="period-col practice-col">
+                        <h4>THỰC HÀNH</h4>
+                        <ul>
+                            <li>
+                                <div class="prac-title">SÁNG</div>
+                                <div><b>Tiết 1 - 6</b><br>07h00 - 12h00</div>
+                            </li>
+                            <li>
+                                <div class="prac-title">CHIỀU</div>
+                                <div><b>Tiết 7 - 12</b><br>12h30 - 17h30</div>
+                            </li>
+                            <li>
+                                <div class="prac-title">TỐI</div>
+                                <div><b>Tiết 13 - 17</b><br>17h45 - 21h55</div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
